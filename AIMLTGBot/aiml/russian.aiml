@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <aiml version="1.0.1">
 
 	<category>
@@ -14,12 +14,38 @@
 					<think>
 						<set name="initialized">done</set>
 					</think>
-					Привет, <get name="username"/>! Я бот-исследователь нейросетей. О какой цифре (0-9) мне рассказать?
+					Привет, <get name="username"/>! Я бот-исследователь нейросетей. Хочешь узнать больше о цифрах?
 				</li>
 			</condition>
 		</template>
 	</category>
 
+	<category>
+		<pattern>ДА</pattern>
+		<that>ПРИВЕТ * Я БОТ ИССЛЕДОВАТЕЛЬ НЕЙРОСЕТЕЙ ХОЧЕШЬ УЗНАТЬ БОЛЬШЕ О ЦИФРАХ</that>
+		<template>Отлично! О какой цифре (0-9) мне рассказать?</template>
+	</category>
+
+	<category>
+		<pattern>НЕТ</pattern>
+		<that>ПРИВЕТ * Я БОТ ИССЛЕДОВАТЕЛЬ НЕЙРОСЕТЕЙ ХОЧЕШЬ УЗНАТЬ БОЛЬШЕ О ЦИФРАХ</that>
+		<template>Жаль. Если передумаешь — просто назови любую цифру или напиши «Помощь».</template>
+	</category>
+
+	<category>
+		<pattern>ДАВАЙ</pattern>
+		<template>
+			<srai>ДА</srai>
+		</template>
+	</category>
+
+	<category>
+		<pattern>КОНЕЧНО</pattern>
+		<template>
+			<srai>ДА</srai>
+		</template>
+	</category>
+	
 	<category>
 		<pattern>ПРИВЕТ</pattern>
 		<template>
@@ -255,7 +281,14 @@
 
 	<category>
 		<pattern>*</pattern>
-		<template>Я не совсем понял запрос. Попробуй спросить: «Расскажи о цифре 5» или «Какие образы ты знаешь?».</template>
+		<template>
+			<random>
+				<li>Я не совсем понял запрос. Попробуй спросить: «Расскажи о цифре 5» или «Какие образы ты знаешь?».</li>
+				<li>Мои нейроны в замешательстве. Можешь уточнить запрос? Например: «Что такое цифра 8?».</li>
+				<li>К сожалению, я не распознал команду. Напиши «Помощь», чтобы увидеть список моих умений.</li>
+				<li>Хмм, это мне не знакомо. Попробуй спросить «Какие образы ты знаешь?».</li>
+			</random>
+		</template>
 	</category>
 
 </aiml>
