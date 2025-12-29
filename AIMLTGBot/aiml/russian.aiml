@@ -9,14 +9,8 @@
 					<star/>
 				</set>
 			</think>
-			<condition name="initialized">
-				<li>
-					<think>
-						<set name="initialized">done</set>
-					</think>
-					Привет, <get name="username"/>! Я бот-исследователь нейросетей. Хочешь узнать больше о цифрах?
-				</li>
-			</condition>
+
+			Привет, <get name="username"/>! Я бот-исследователь нейросетей. Хочешь узнать больше о цифрах?
 		</template>
 	</category>
 
