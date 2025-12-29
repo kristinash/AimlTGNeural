@@ -25,8 +25,6 @@ namespace AIMLTGBot
             {
                 user = new User(userId.ToString(), bot);
                 users.Add(userId, user);
-
-                // Вместо отправки сообщения в чат, просто тихо записываем имя в предикат
                 user.Predicates.addSetting("username", userName);
             }
             else
@@ -38,3 +36,4 @@ namespace AIMLTGBot
         }
     }
 }
+
