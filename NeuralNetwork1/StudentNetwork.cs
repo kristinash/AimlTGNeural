@@ -1,6 +1,8 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace NeuralNetwork1
 {
@@ -11,13 +13,19 @@ namespace NeuralNetwork1
         private double[][] biases;
         private double[][] outputs;
         private double[][] sums;
-        private double learningRate = 0.25; 
+        private double learningRate = 0.1;
         private double momentum = 0.9;
-        private double weightDecay = 0.0001; 
+        private double weightDecay = 0.00001; 
         private double[][,] prevWeightDeltas;
         private double[][] prevBiasDeltas;
         private Random random = new Random();
         private double[][] deltas;
+        public Stopwatch stopWatch = new Stopwatch();
+
+        private double minLearningRate = 0.001;
+        private double learningRateDecay = 0.995;
+        private int noImprovementCount = 0;
+        private double bestError = double.MaxValue;
 
         public StudentNetwork(int[] structure)
         {
@@ -28,6 +36,9 @@ namespace NeuralNetwork1
 
             if (structure[0] != 400)
                 throw new ArgumentException("Входной слой должен содержать 400 нейронов");
+
+            if (structure[structure.Length - 1] != 4)
+                throw new ArgumentException("Выходной слой должен содержать 4 нейрона для 4 фигур");
 
             InitializeNetwork();
         }
@@ -59,30 +70,20 @@ namespace NeuralNetwork1
                     biases[layer - 1] = new double[neurons];
                     prevBiasDeltas[layer - 1] = new double[neurons];
 
-                    // Инициализация Хе (He initialization) для ReLU
-                    double scale = Math.Sqrt(2.0 / prevNeurons);
+                    double scale = Math.Sqrt(2.0 / (prevNeurons + neurons));
 
                     for (int to = 0; to < neurons; to++)
                     {
-                        biases[layer - 1][to] = 0.01; 
+                        biases[layer - 1][to] = (random.NextDouble() * 0.2) - 0.1;
 
                         for (int from = 0; from < prevNeurons; from++)
                         {
                             weights[layer - 1][from, to] = (random.NextDouble() * 2 - 1) * scale;
+                            prevWeightDeltas[layer - 1][from, to] = 0;
                         }
                     }
                 }
             }
-        }
-
-        private double LeakyReLU(double x)
-        {
-            return x > 0 ? x : 0.01 * x;
-        }
-
-        private double LeakyReLUDerivative(double x)
-        {
-            return x > 0 ? 1 : 0.01;
         }
 
         private double Sigmoid(double x)
@@ -96,22 +97,35 @@ namespace NeuralNetwork1
             }
         }
 
-        private double SigmoidDerivative(double x)
+        private double SigmoidDerivative(double output)
         {
-            double s = Sigmoid(x);
-            return s * (1.0 - s);
+            return output * (1.0 - output);
         }
 
         private void ForwardPass(double[] input, bool training = true)
         {
-            for (int i = 0; i < structure[0]; i++)
+            double maxInput = input.Max();
+            double minInput = input.Min();
+            double range = maxInput - minInput;
+
+            if (range > 0)
             {
-                outputs[0][i] = input[i] / 200.0; 
-                sums[0][i] = outputs[0][i];
+                for (int i = 0; i < structure[0]; i++)
+                {
+                    outputs[0][i] = (input[i] - minInput) / range;
+                    sums[0][i] = outputs[0][i];
+                }
+            }
+            else
+            {
+                for (int i = 0; i < structure[0]; i++)
+                {
+                    outputs[0][i] = input[i];
+                    sums[0][i] = outputs[0][i];
+                }
             }
 
-            int lastLayer = structure.Length - 1;
-            for (int layer = 1; layer < lastLayer; layer++)
+            for (int layer = 1; layer < structure.Length; layer++)
             {
                 int prevLayer = layer - 1;
 
@@ -124,22 +138,28 @@ namespace NeuralNetwork1
                     }
                     sum += biases[prevLayer][to];
                     sums[layer][to] = sum;
-                    outputs[layer][to] = LeakyReLU(sum);
+                    outputs[layer][to] = Sigmoid(sum);
+
+                    if (training && random.NextDouble() < 0.1)
+                    {
+                        outputs[layer][to] += (random.NextDouble() - 0.5) * 0.01;
+                    }
                 }
+            }
+        }
+
+        private double CalculateError(double[] target)
+        {
+            int lastLayer = structure.Length - 1;
+            double error = 0;
+
+            for (int i = 0; i < structure[lastLayer]; i++)
+            {
+                double output = Math.Max(Math.Min(outputs[lastLayer][i], 0.999999), 0.000001);
+                error += target[i] * Math.Log(output) + (1 - target[i]) * Math.Log(1 - output);
             }
 
-            int prev = lastLayer - 1;
-            for (int neuron = 0; neuron < structure[lastLayer]; neuron++)
-            {
-                double sum = 0;
-                for (int prevNeuron = 0; prevNeuron < structure[prev]; prevNeuron++)
-                {
-                    sum += outputs[prev][prevNeuron] * weights[prev][prevNeuron, neuron];
-                }
-                sum += biases[prev][neuron];
-                sums[lastLayer][neuron] = sum;
-                outputs[lastLayer][neuron] = Sigmoid(sum);
-            }
+            return -error;
         }
 
         private void BackwardPass(double[] target)
@@ -149,27 +169,26 @@ namespace NeuralNetwork1
             for (int i = 0; i < structure[lastLayer]; i++)
             {
                 double output = outputs[lastLayer][i];
-                double error = output - target[i];
-                deltas[lastLayer][i] = error * SigmoidDerivative(sums[lastLayer][i]);
+                deltas[lastLayer][i] = output - target[i];
             }
 
-            for (int layer = lastLayer - 1; layer > 0; layer--)
+            for (int layer = lastLayer - 1; layer >= 1; layer--)
             {
-                for (int neuron = 0; neuron < structure[layer]; neuron++)
+                for (int j = 0; j < structure[layer]; j++)
                 {
                     double sum = 0;
-                    for (int nextNeuron = 0; nextNeuron < structure[layer + 1]; nextNeuron++)
+                    for (int k = 0; k < structure[layer + 1]; k++)
                     {
-                        sum += deltas[layer + 1][nextNeuron] * weights[layer][neuron, nextNeuron];
+                        sum += deltas[layer + 1][k] * weights[layer][j, k];
                     }
-                    deltas[layer][neuron] = sum * LeakyReLUDerivative(sums[layer][neuron]);
+                    deltas[layer][j] = sum * SigmoidDerivative(outputs[layer][j]);
                 }
             }
         }
 
-        private void UpdateWeights(double batchSize = 1.0)
+        private void UpdateWeights(double lr, double batchSize = 1.0)
         {
-            double effectiveLearningRate = learningRate / batchSize;
+            double effectiveLR = lr / batchSize;
 
             for (int layer = 0; layer < structure.Length - 1; layer++)
             {
@@ -178,66 +197,25 @@ namespace NeuralNetwork1
                     for (int from = 0; from < structure[layer]; from++)
                     {
                         double gradient = deltas[layer + 1][to] * outputs[layer][from];
-                        double delta = effectiveLearningRate * gradient +
-                                      momentum * prevWeightDeltas[layer][from, to];
+                        double delta = effectiveLR * gradient + momentum * prevWeightDeltas[layer][from, to];
 
-                        delta += effectiveLearningRate * weightDecay * weights[layer][from, to];
+                        delta += effectiveLR * weightDecay * weights[layer][from, to];
 
-                        weights[layer][from, to] -= delta;
+                        weights[layer][from, to] += delta;
                         prevWeightDeltas[layer][from, to] = delta;
                     }
 
-                    double biasDelta = effectiveLearningRate * deltas[layer + 1][to] +
-                                      momentum * prevBiasDeltas[layer][to];
-                    biases[layer][to] -= biasDelta;
+                    double biasDelta = effectiveLR * deltas[layer + 1][to] + momentum * prevBiasDeltas[layer][to];
+                    biases[layer][to] += biasDelta;
                     prevBiasDeltas[layer][to] = biasDelta;
                 }
             }
         }
 
-        private double CalculateCrossEntropyError(double[] target)
+        protected override double[] Compute(double[] input)
         {
-            double error = 0;
-            int lastLayer = structure.Length - 1;
-            double epsilon = 1e-15;
-
-            for (int i = 0; i < structure[lastLayer]; i++)
-            {
-                double output = Math.Max(Math.Min(outputs[lastLayer][i], 1 - epsilon), epsilon);
-                error -= target[i] * Math.Log(output);
-            }
-
-            return error;
-        }
-
-        private double CalculateAccuracy(SamplesSet samplesSet)
-        {
-            int correct = 0;
-            int total = samplesSet.Count;
-
-            for (int i = 0; i < total; i++)
-            {
-                var sample = samplesSet[i];
-                ForwardPass(sample.input, false);
-
-                int predicted = 0;
-                double maxProb = 0;
-                int lastLayer = structure.Length - 1;
-
-                for (int j = 0; j < structure[lastLayer]; j++)
-                {
-                    if (outputs[lastLayer][j] > maxProb)
-                    {
-                        maxProb = outputs[lastLayer][j];
-                        predicted = j;
-                    }
-                }
-
-                if (predicted == (int)sample.actualClass)
-                    correct++;
-            }
-
-            return (double)correct / total;
+            ForwardPass(input, false);
+            return outputs[structure.Length - 1];
         }
 
         public override int Train(Sample sample, double acceptableError, bool parallel)
@@ -248,75 +226,108 @@ namespace NeuralNetwork1
             do
             {
                 ForwardPass(sample.input);
-                error = CalculateCrossEntropyError(sample.Output);
+                error = CalculateError(sample.Output);
 
                 if (error <= acceptableError)
                     break;
 
                 BackwardPass(sample.Output);
-                UpdateWeights();
+                UpdateWeights(learningRate);
 
                 iterations++;
 
-            } while (iterations < 1000);
+                if (iterations > 5000)
+                    break;
+
+            } while (error > acceptableError);
 
             return iterations;
         }
 
+        private void ShuffleList<T>(List<T> list)
+        {
+            int n = list.Count;
+            while (n > 1)
+            {
+                n--;
+                int k = random.Next(n + 1);
+                T value = list[k];
+                list[k] = list[n];
+                list[n] = value;
+            }
+        }
+
+        private List<int> GetShuffledIndices(int count)
+        {
+            var indices = new List<int>(count);
+            for (int i = 0; i < count; i++)
+                indices.Add(i);
+
+            ShuffleList(indices);
+            return indices;
+        }
+
         public override double TrainOnDataSet(SamplesSet samplesSet, int epochsCount, double acceptableError, bool parallel)
         {
-            int totalSamples = samplesSet.Count;
-            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            stopWatch.Restart();
 
+            int totalSamples = samplesSet.Count;
             int trainSize = (int)(totalSamples * 0.8);
-            var trainIndices = new List<int>();
-            var valIndices = new List<int>();
+            int valSize = totalSamples - trainSize;
+
+            var trainSet = new List<Sample>();
+            var validationSet = new List<Sample>();
+
+            var shuffledIndices = GetShuffledIndices(totalSamples);
 
             for (int i = 0; i < totalSamples; i++)
             {
+                int index = shuffledIndices[i];
+                var sample = samplesSet[index];
+
                 if (i < trainSize)
-                    trainIndices.Add(i);
+                    trainSet.Add(sample);
                 else
-                    valIndices.Add(i);
+                    validationSet.Add(sample);
             }
 
-            double bestValidationError = double.MaxValue;
-            int patience = 20;
-            int patienceCounter = 0;
+            Console.WriteLine($"Начало обучения: {trainSet.Count} обучающих, {validationSet.Count} валидационных");
 
-            double[][,] weightGradients = new double[structure.Length - 1][,];
-            double[][] biasGradients = new double[structure.Length - 1][];
+            double currentLR = learningRate;
+            bestError = double.MaxValue;
+            noImprovementCount = 0;
 
-            for (int i = 0; i < structure.Length - 1; i++)
-            {
-                weightGradients[i] = new double[structure[i], structure[i + 1]];
-                biasGradients[i] = new double[structure[i + 1]];
-            }
+            int batchSize = Math.Min(16, trainSet.Count);
+            int batchesPerEpoch = trainSet.Count > 0 ? (trainSet.Count + batchSize - 1) / batchSize : 1;
 
             for (int epoch = 0; epoch < epochsCount; epoch++)
             {
-                trainIndices = trainIndices.OrderBy(x => random.Next()).ToList();
+                ShuffleList(trainSet);
 
-                int batchSize = 16; 
-                double trainError = 0;
-                int trainCorrect = 0;
+                double epochError = 0;
+                int epochCorrect = 0;
 
-                for (int batchStart = 0; batchStart < trainSize; batchStart += batchSize)
+                for (int batch = 0; batch < batchesPerEpoch; batch++)
                 {
-                    int batchEnd = Math.Min(batchStart + batchSize, trainSize);
+                    int start = batch * batchSize;
+                    int end = Math.Min(start + batchSize, trainSet.Count);
+                    int currentBatchSize = end - start;
 
-                    for (int layer = 0; layer < structure.Length - 1; layer++)
+                    if (currentBatchSize == 0) continue;
+
+                    for (int layer = 0; layer < structure.Length; layer++)
                     {
-                        Array.Clear(weightGradients[layer], 0, weightGradients[layer].Length);
-                        Array.Clear(biasGradients[layer], 0, biasGradients[layer].Length);
+                        Array.Clear(deltas[layer], 0, deltas[layer].Length);
                     }
 
-                    for (int i = batchStart; i < batchEnd; i++)
+                    double batchError = 0;
+                    for (int i = start; i < end; i++)
                     {
-                        var sample = samplesSet[trainIndices[i]];
+                        var sample = trainSet[i];
+
                         ForwardPass(sample.input);
 
-                        trainError += CalculateCrossEntropyError(sample.Output);
+                        batchError += CalculateError(sample.Output);
 
                         int lastLayer = structure.Length - 1;
                         int predicted = 0;
@@ -330,46 +341,26 @@ namespace NeuralNetwork1
                             }
                         }
                         if (predicted == (int)sample.actualClass)
-                            trainCorrect++;
+                            epochCorrect++;
 
                         BackwardPass(sample.Output);
-
-                        for (int layer = 0; layer < structure.Length - 1; layer++)
-                        {
-                            for (int to = 0; to < structure[layer + 1]; to++)
-                            {
-                                for (int from = 0; from < structure[layer]; from++)
-                                {
-                                    weightGradients[layer][from, to] += deltas[layer + 1][to] * outputs[layer][from];
-                                }
-                                biasGradients[layer][to] += deltas[layer + 1][to];
-                            }
-                        }
                     }
 
-                    for (int layer = 0; layer < structure.Length - 1; layer++)
-                    {
-                        for (int to = 0; to < structure[layer + 1]; to++)
-                        {
-                            for (int from = 0; from < structure[layer]; from++)
-                            {
-                                deltas[layer + 1][to] = weightGradients[layer][from, to] / (batchEnd - batchStart);
-                            }
-                            deltas[layer + 1][to] = biasGradients[layer][to] / (batchEnd - batchStart);
-                        }
-                    }
-
-                    UpdateWeights(batchEnd - batchStart);
+                    UpdateWeights(currentLR, currentBatchSize);
+                    epochError += batchError / currentBatchSize;
                 }
+
+                epochError /= batchesPerEpoch;
+                double trainAccuracy = trainSet.Count > 0 ? (double)epochCorrect / trainSet.Count : 0;
 
                 double validationError = 0;
                 int validationCorrect = 0;
 
-                foreach (var idx in valIndices)
+                for (int i = 0; i < validationSet.Count; i++)
                 {
-                    var sample = samplesSet[idx];
+                    var sample = validationSet[i];
                     ForwardPass(sample.input, false);
-                    validationError += CalculateCrossEntropyError(sample.Output);
+                    validationError += CalculateError(sample.Output);
 
                     int lastLayer = structure.Length - 1;
                     int predicted = 0;
@@ -386,59 +377,93 @@ namespace NeuralNetwork1
                         validationCorrect++;
                 }
 
-                trainError /= trainSize;
-                validationError /= valIndices.Count;
-                double trainAccuracy = (double)trainCorrect / trainSize;
-                double validationAccuracy = (double)validationCorrect / valIndices.Count;
+                validationError /= validationSet.Count > 0 ? validationSet.Count : 1;
+                double validationAccuracy = validationSet.Count > 0 ? (double)validationCorrect / validationSet.Count : 0;
 
-                if (validationError < bestValidationError * 0.995)
+                if (validationError < bestError * 0.995) 
                 {
-                    bestValidationError = validationError;
-                    patienceCounter = 0;
-                    learningRate = Math.Min(learningRate * 1.05, 0.5);
+                    bestError = validationError;
+                    noImprovementCount = 0;
+                    currentLR = Math.Min(currentLR * 1.05, 0.5);
                 }
                 else
                 {
-                    patienceCounter++;
-                    if (patienceCounter >= patience / 2)
+                    noImprovementCount++;
+                    if (noImprovementCount >= 5)
                     {
-                        learningRate *= 0.9; 
+                        currentLR *= 0.7;
+                        currentLR = Math.Max(currentLR, minLearningRate);
                     }
                 }
 
-                OnTrainProgress((double)epoch / epochsCount, validationError, stopwatch.Elapsed);
-
-                if (epoch % 5 == 0)
+                if (noImprovementCount >= 15)
                 {
-                    Console.WriteLine($"Эпоха {epoch}: Train Acc={trainAccuracy:P2}, Val Acc={validationAccuracy:P2}, " +
-                                    $"Val Error={validationError:F6}, LR={learningRate:F4}");
-                }
-
-                if (patienceCounter >= patience)
-                {
-                    Console.WriteLine($"Ранняя остановка на эпохе {epoch}");
+                    Console.WriteLine($"Ранняя остановка на эпохе {epoch + 1}");
                     break;
                 }
 
-                if (validationAccuracy > 0.95 && validationError < acceptableError)
+                OnTrainProgress((double)epoch / epochsCount, validationError, stopWatch.Elapsed);
+
+                if (epoch % 5 == 0 || epoch == 0)
                 {
-                    Console.WriteLine($"Достигнута достаточная точность на эпохе {epoch}");
+                    Console.WriteLine($"Эпоха {epoch + 1}: " +
+                                    $"Train Acc={trainAccuracy:P2}, Val Acc={validationAccuracy:P2}, " +
+                                    $"Val Error={validationError:F6}, LR={currentLR:F4}");
+                }
+
+                if (validationAccuracy >= 0.95 && validationError < acceptableError)
+                {
+                    Console.WriteLine($"Достигнута хорошая точность на эпохе {epoch + 1}");
                     break;
                 }
+
+                currentLR = Math.Max(currentLR * learningRateDecay, minLearningRate);
             }
 
-            stopwatch.Stop();
+            int totalCorrect = 0;
+            for (int i = 0; i < samplesSet.Count; i++)
+            {
+                var sample = samplesSet[i];
+                ForwardPass(sample.input, false);
 
-            double finalAccuracy = CalculateAccuracy(samplesSet);
-            Console.WriteLine($"Финальная точность: {finalAccuracy:P2}");
+                int lastLayer = structure.Length - 1;
+                int predicted = 0;
+                double maxProb = 0;
+                for (int j = 0; j < structure[lastLayer]; j++)
+                {
+                    if (outputs[lastLayer][j] > maxProb)
+                    {
+                        maxProb = outputs[lastLayer][j];
+                        predicted = j;
+                    }
+                }
+                if (predicted == (int)sample.actualClass)
+                    totalCorrect++;
+            }
 
-            return bestValidationError;
+            double finalAccuracy = (double)totalCorrect / samplesSet.Count;
+            Console.WriteLine($"Финальная точность на всем датасете: {finalAccuracy:P2}");
+            Console.WriteLine($"Общее время обучения: {stopWatch.Elapsed.TotalSeconds:F2} сек");
+
+            OnTrainProgress(1.0, bestError, stopWatch.Elapsed);
+            stopWatch.Stop();
+
+            return bestError;
         }
 
-        protected override double[] Compute(double[] input)
+        public string GetNetworkInfo()
         {
-            ForwardPass(input, false);
-            return outputs[structure.Length - 1];
+            int totalWeights = 0;
+            for (int i = 0; i < structure.Length - 1; i++)
+            {
+                totalWeights += structure[i] * structure[i + 1];
+            }
+
+            return $"Структура: {string.Join(" → ", structure)}\n" +
+                   $"Всего весов: {totalWeights:N0}\n" +
+                   $"Learning Rate: {learningRate:F4}\n" +
+                   $"Momentum: {momentum:F2}\n" +
+                   $"Weight Decay: {weightDecay:F6}";
         }
     }
 }
