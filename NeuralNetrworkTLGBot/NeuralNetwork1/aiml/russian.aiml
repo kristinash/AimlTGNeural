@@ -1,0 +1,287 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<aiml version="1.0.1">
+
+	<category>
+		<pattern>МЕНЯ ЗОВУТ *</pattern>
+		<template>
+			<think>
+				<set name="username">
+					<star/>
+				</set>
+			</think>
+			Привет, <get name="username"/>! Я бот-исследователь нейросетей. Хочешь узнать больше о цифрах?
+		</template>
+	</category>
+
+	<category>
+		<pattern>ДА</pattern>
+		<that>ПРИВЕТ * Я БОТ ИССЛЕДОВАТЕЛЬ НЕЙРОСЕТЕЙ ХОЧЕШЬ УЗНАТЬ БОЛЬШЕ О ЦИФРАХ</that>
+		<template>Отлично! О какой цифре (0-9) мне рассказать?</template>
+	</category>
+
+	<category>
+		<pattern>НЕТ</pattern>
+		<that>ПРИВЕТ * Я БОТ ИССЛЕДОВАТЕЛЬ НЕЙРОСЕТЕЙ ХОЧЕШЬ УЗНАТЬ БОЛЬШЕ О ЦИФРАХ</that>
+		<template>Жаль. Если передумаешь — просто назови любую цифру или напиши «Помощь».</template>
+	</category>
+
+	<category>
+		<pattern>ДАВАЙ</pattern>
+		<template>
+			<srai>ДА</srai>
+		</template>
+	</category>
+
+	<category>
+		<pattern>КОНЕЧНО</pattern>
+		<template>
+			<srai>ДА</srai>
+		</template>
+	</category>
+
+	<category>
+		<pattern>ПРИВЕТ</pattern>
+		<template>
+			Привет, <get name="username"/>! Какую цифру сегодня разберем?
+		</template>
+	</category>
+
+	<category>
+		<pattern>КАК МЕНЯ ЗОВУТ</pattern>
+		<template>
+			Я помню, что ты — <get name="username"/>.
+		</template>
+	</category>
+
+	<category>
+		<pattern>ЧТО ТЫ УМЕЕШЬ РАСПОЗНАВАТЬ</pattern>
+		<template>
+			<get name="username"/>, я могу распознать любую рукописную цифру от 0 до 9. Выбери любую, и я расскажу подробнее!
+		</template>
+	</category>
+
+	<category>
+		<pattern>КАКИЕ ОБРАЗЫ ТЫ ЗНАЕШЬ</pattern>
+		<template>
+			<srai>ЧТО ТЫ УМЕЕШЬ РАСПОЗНАВАТЬ</srai>
+		</template>
+	</category>
+
+	<category>
+		<pattern>РАССКАЖИ О *</pattern>
+		<template>
+			<srai>
+				РАССКАЖИ О ЦИФРЕ <star/>
+			</srai>
+		</template>
+	</category>
+
+	<category>
+		<pattern>ЧТО ТАКОЕ *</pattern>
+		<template>
+			<srai>
+				РАССКАЖИ О <star/>
+			</srai>
+		</template>
+	</category>
+
+	<category>
+		<pattern>ОПИШИ *</pattern>
+		<template>
+			<srai>
+				РАССКАЖИ О <star/>
+			</srai>
+		</template>
+	</category>
+
+	<category>
+		<pattern>РАССКАЖИ О ЦИФРЕ 0</pattern>
+		<template>
+			<think>
+				<set name="topic">0</set>
+			</think>
+			Ноль — это замкнутый контур. Исторически он зародился в Индии и символизирует пустоту (шунья).
+		</template>
+	</category>
+
+	<category>
+		<pattern>РАССКАЖИ О ЦИФРЕ 1</pattern>
+		<template>
+			<think>
+				<set name="topic">1</set>
+			</think>
+			Единица — простейший вертикальный штрих. Для нейросети это самый легкий образ для классификации.
+		</template>
+	</category>
+
+	<category>
+		<pattern>РАССКАЖИ О ЦИФРЕ 2</pattern>
+		<template>
+			<think>
+				<set name="topic">2</set>
+			</think>
+			Двойка имеет изгиб сверху и прямое основание. Это единственное четное простое число в математике.
+		</template>
+	</category>
+
+	<category>
+		<pattern>РАССКАЖИ О ЦИФРЕ 3</pattern>
+		<template>
+			<think>
+				<set name="topic">3</set>
+			</think>
+			Тройка состоит из двух открытых петель. Число три часто считается магическим во многих мировых культурах.
+		</template>
+	</category>
+
+	<category>
+		<pattern>РАССКАЖИ О ЦИФРЕ 4</pattern>
+		<template>
+			<think>
+				<set name="topic">4</set>
+			</think>
+			Четверка — это пересечение линий. Она символизирует устойчивость, как четыре стороны света или времени года.
+		</template>
+	</category>
+
+	<category>
+		<pattern>РАССКАЖИ О ЦИФРЕ 5</pattern>
+		<template>
+			<think>
+				<set name="topic">5</set>
+			</think>
+			Пятерка — комбинация дуги и прямой линии. У человека 5 пальцев, что стало основой нашей системы счета.
+		</template>
+	</category>
+
+	<category>
+		<pattern>РАССКАЖИ О ЦИФРЕ 6</pattern>
+		<template>
+			<think>
+				<set name="topic">6</set>
+			</think>
+			Шестерка имеет петлю в нижней части. В теории чисел она считается «совершенным» числом.
+		</template>
+	</category>
+
+	<category>
+		<pattern>РАССКАЖИ О ЦИФРЕ 7</pattern>
+		<template>
+			<think>
+				<set name="topic">7</set>
+			</think>
+			Семерка — острый угол сверху. Это число часто ассоциируется с удачей и гармонией.
+		</template>
+	</category>
+
+	<category>
+		<pattern>РАССКАЖИ О ЦИФРЕ 8</pattern>
+		<template>
+			<think>
+				<set name="topic">8</set>
+			</think>
+			Восьмерка — это два замкнутых круга. Если её перевернуть горизонтально, получится символ бесконечности.
+		</template>
+	</category>
+
+	<category>
+		<pattern>РАССКАЖИ О ЦИФРЕ 9</pattern>
+		<template>
+			<think>
+				<set name="topic">9</set>
+			</think>
+			Девятка — петля в верхней части. Это самая большая цифра в десятичной системе счисления.
+		</template>
+	</category>
+
+	<category>
+		<pattern>А ЕЩЕ</pattern>
+		<template>
+			<condition name="topic">
+				<li value="0">В программировании индекс первого элемента массива всегда равен 0.</li>
+				<li value="1">В двоичном коде единица означает состояние «Истина» (True) или наличие сигнала.</li>
+				<li value="2">Двойка — база двоичной системы, на которой работают все современные компьютеры.</li>
+				<li value="3">В геометрии треугольник (3 угла) — самая устойчивая и жесткая конструкция.</li>
+				<li value="4">В восточной Азии цифру 4 часто боятся, так как её название созвучно со словом «смерть».</li>
+				<li value="5">На морском дне живут морские звезды, у большинства из которых ровно 5 лучей.</li>
+				<li value="6">У всех насекомых на нашей планете ровно шесть ног.</li>
+				<li value="7">Семерка — это количество музыкальных нот и количество цветов в радуге.</li>
+				<li value="8">В шахматах игровое поле имеет размер 8 на 8 клеток.</li>
+				<li value="9">Девятка — это перевернутая шестерка, нейросети часто ошибаются между ними.</li>
+				<li>
+					<get name="username"/>, сначала выбери цифру, о которой хочешь узнать больше!
+				</li>
+			</condition>
+		</template>
+	</category>
+
+	<category>
+		<pattern>ПОДРОБНЕЕ</pattern>
+		<template>
+			<srai>
+				А ЕЩЕ
+			</srai>
+		</template>
+	</category>
+
+	<category>
+		<pattern>О ЧЕМ МЫ РАЗГОВАРИВАЕМ</pattern>
+		<template>
+			<condition name="topic">
+				<li value="0">Мы сейчас обсуждаем цифру 0.</li>
+				<li value="1">Мы сейчас обсуждаем цифру 1.</li>
+				<li value="2">Мы сейчас обсуждаем цифру 2.</li>
+				<li value="3">Мы сейчас обсуждаем цифру 3.</li>
+				<li value="4">Мы сейчас обсуждаем цифру 4.</li>
+				<li value="5">Мы сейчас обсуждаем цифру 5.</li>
+				<li value="6">Мы сейчас обсуждаем цифру 6.</li>
+				<li value="7">Мы сейчас обсуждаем цифру 7.</li>
+				<li value="8">Мы сейчас обсуждаем цифру 8.</li>
+				<li value="9">Мы сейчас обсуждаем цифру 9.</li>
+				<li>
+					<get name="username"/>, ты еще не спросил у меня ни про одну цифру! Спроси, например: "Расскажи о цифре 5".
+				</li>
+			</condition>
+		</template>
+	</category>
+
+	<category>
+		<pattern>ПОМОЩЬ</pattern>
+		<template>
+			Вот что я умею:
+			1. Запоминать имя: напиши «Меня зовут [имя]».
+			2. Спросить у меня твое имя: «Как меня зовут».
+			3. Узнать о цифре: скажи «Расскажи о цифре [0-9]» или «Что такое [0-9]».
+			4. Дополнительная информация: когда мы уже обсуждаем цифру, просто напиши «А еще» или «Подробнее».
+			5. Текущий контекст: спроси «О чем мы разговариваем?».
+			6. Список всех образов: спроси «Какие образы ты знаешь?».
+		</template>
+	</category>
+
+	<category>
+		<pattern>ЧТО ТЫ УМЕЕШЬ</pattern>
+		<template>
+			<srai>ПОМОЩЬ</srai>
+		</template>
+	</category>
+
+	<category>
+		<pattern>КОМАНДЫ</pattern>
+		<template>
+			<srai>ПОМОЩЬ</srai>
+		</template>
+	</category>
+
+	<category>
+		<pattern>*</pattern>
+		<template>
+			<random>
+				<li>Я не совсем понял запрос. Попробуй спросить: «Расскажи о цифре 5» или «Какие образы ты знаешь?».</li>
+				<li>Мои нейроны в замешательстве. Можешь уточнить запрос? Например: «Что такое цифра 8?».</li>
+				<li>К сожалению, я не распознал команду. Напиши «Помощь», чтобы увидеть список моих умений.</li>
+				<li>Хмм, это мне не знакомо. Попробуй спросить «Какие образы ты знаешь?».</li>
+			</random>
+		</template>
+	</category>
+
+</aiml>
